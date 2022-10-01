@@ -14,11 +14,25 @@ public:
 	virtual void OnUIRender() override
 	{
 		ImGui::Begin("Settings");
-		ImGui::Text("Last render: %.3fms", m_LastRenderTime);
-		if (ImGui::Button("Render"))
-		{
-			Render();
+		
+		ImGui::Text("Last render: %.3f ms", m_LastRenderTime);
+		ImGui::Text("Viewport: %dx%d", m_ViewportWidth, m_ViewportHeight);
+
+		ImGui::ColorPicker3("ObjectColor", m_ObjectColor, ImGuiColorEditFlags_DisplayRGB);
+
+		ImGui::SliderInt3("Direction of Light", &m_LightDirection[0], -10, 10);
+		
+		// Simple Way to Check Endianness of Machine
+		
+		/*std::string machinetype = "Big Endian";
+		int n = 1;
+		
+		if (*(char*)&n == 1) {
+			machinetype = "Little Endian";
 		}
+
+		ImGui::Text("Machine Type: %s", machinetype.c_str());*/
+
 		ImGui::End();
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
@@ -34,6 +48,10 @@ public:
 
 		ImGui::End();
 		ImGui::PopStyleVar();
+
+		glm::vec3 color(m_ObjectColor[0], m_ObjectColor[1], m_ObjectColor[2]);
+		m_Renderer.SetObjectColor(color);
+		m_Renderer.setLightDirection(glm::vec3((float)m_LightDirection[0], (float)m_LightDirection[1], (float)m_LightDirection[2]));
 
 		Render();
 	}
@@ -52,6 +70,9 @@ private:
 	uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 
 	float m_LastRenderTime = 0.0f;
+	float m_ObjectColor[3] = {1, 1, 1};
+	
+	int m_LightDirection[3] = { -1, -1, -1 };
 };
 
 Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
