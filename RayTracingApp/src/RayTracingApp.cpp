@@ -1,16 +1,34 @@
 #include "Walnut/Application.h"
 #include "Walnut/EntryPoint.h"
-
 #include "Walnut/Image.h"
 #include "Walnut/Timer.h"
-
 #include "Renderer.h"
+#include "Camera.h"
+#include "Scene.h"
+#include <glm/gtc/type_ptr.hpp>
 
 using namespace Walnut;
 
 class ExampleLayer : public Walnut::Layer
 {
 public:
+	ExampleLayer() : m_Camera(45.0f, 0.1f, 100.0f), m_LightDirection(-1, -1, -1) {
+		m_Scene.spheres.push_back({
+			{ 0.0f, 0.0f, -5.0f },
+			1.0f,
+			{ 1.0f, 0.0f, 0.0f }
+		});
+		m_Scene.spheres.push_back({
+			{ 0.0f, 0.0f, -8.0f },
+			1.0f,
+			{ 1.0f, 0.0f, 0.0f }
+		});
+	}
+
+	virtual void OnUpdate(float ts) override {
+		m_Camera.OnUpdate(ts);
+	}
+
 	virtual void OnUIRender() override
 	{
 		ImGui::Begin("Settings");
@@ -18,9 +36,21 @@ public:
 		ImGui::Text("Last render: %.3f ms", m_LastRenderTime);
 		ImGui::Text("Viewport: %dx%d", m_ViewportWidth, m_ViewportHeight);
 
-		ImGui::ColorPicker3("ObjectColor", m_ObjectColor, ImGuiColorEditFlags_DisplayRGB);
+		ImGui::SliderFloat3("Direction of Light", glm::value_ptr(m_LightDirection), -10, 10);
 
-		ImGui::SliderInt3("Direction of Light", &m_LightDirection[0], -10, 10);
+		for (size_t i = 0; i < m_Scene.spheres.size(); i++)
+		{
+			ImGui::PushID(i);
+
+			Sphere& sphere = m_Scene.spheres[i];
+			ImGui::DragFloat3("Position", glm::value_ptr(sphere.position), 0.1f);
+			ImGui::DragFloat("Radius", &sphere.radius, 0.1f);
+			ImGui::ColorEdit3("Color", glm::value_ptr(sphere.color));
+
+			ImGui::Separator();
+
+			ImGui::PopID();
+		}
 		
 		// Simple Way to Check Endianness of Machine
 		
@@ -49,9 +79,7 @@ public:
 		ImGui::End();
 		ImGui::PopStyleVar();
 
-		glm::vec3 color(m_ObjectColor[0], m_ObjectColor[1], m_ObjectColor[2]);
-		m_Renderer.SetObjectColor(color);
-		m_Renderer.setLightDirection(glm::vec3((float)m_LightDirection[0], (float)m_LightDirection[1], (float)m_LightDirection[2]));
+		m_Renderer.setLightDirection(m_LightDirection);
 
 		Render();
 	}
@@ -61,18 +89,18 @@ public:
 		Timer timer;
 
 		m_Renderer.OnResize(m_ViewportWidth, m_ViewportHeight);
-		m_Renderer.Render();
+		m_Camera.OnResize(m_ViewportWidth, m_ViewportHeight);
+		m_Renderer.Render(m_Scene, m_Camera);
 
 		m_LastRenderTime = timer.ElapsedMillis();
 	}
 private:
 	Renderer m_Renderer;
+	Camera m_Camera;
+	Scene m_Scene;
 	uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
-
 	float m_LastRenderTime = 0.0f;
-	float m_ObjectColor[3] = {1, 1, 1};
-	
-	int m_LightDirection[3] = { -1, -1, -1 };
+	glm::vec3 m_LightDirection;
 };
 
 Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
